@@ -851,6 +851,7 @@ lval* load(lenv* e, char* filename) {
 			}
 			lval_del(x);
 		}
+                lval_del(expr);
 		return lval_sym(filename);
 	} else {
 		char* err_msg = mpc_err_string(r.error);
@@ -891,6 +892,8 @@ int main(int argc, char** argv) {
 	lval* r = load(e, "prelude.lspy");
 	lval_println(r);
 	lval_del(r);
+        goto exit;
+
 
 	while (1) {
 		char* input = readline("lispy>");
@@ -912,8 +915,8 @@ int main(int argc, char** argv) {
 		free(input);
 	}
 
+exit:
 	lenv_del(e);
-
 	mpc_cleanup(7, Number, Symbol, Sexpr, Qexpr, Expr, Comment, Lispy);
 	return 0;
 }

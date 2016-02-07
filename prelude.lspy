@@ -1,22 +1,78 @@
+; Drawbacks and notices:
+; 1. No functions with zero arguments
+; 2. Maybe it's good idea to rewrite if function to format if {cond} {then} {else}
+; 3. What is correct way to break control flow?
+
 ;
 ; Define atoms
 ;
 
 (def {nil} {})
-(def {true} 1)
-(def {false} 0)
 
 (def {fun} (\{args body} {
   def (head args) (\(tail args) body)
 }))
 
 ;
+; Logic
+;
+
+(def {true} 1)
+(def {false} 0)
+
+(fun {not x} {(- x 1)})
+(fun {and x y} {(* x y)})
+(fun {or x y} {(+ x y)})
+
+;
+; List tools
+;
+(fun {fst l} {
+  eval (head l)
+})
+
+(fun {len l} {
+  if (== l nil)
+    { 0 }
+    { + (len (tail l)) 1 }
+})
+
+(fun {nth n l} {
+  if (== n 0)
+    { fst l }
+    { nth (- n 1) (tail l) }
+})
+
+(fun {take n l} {
+  if (== n 0)
+    { nil }
+    { join (head l) (take (- n 1) (tail l)) }
+})
+
+(fun {drop n l} {
+  if (== n 0)
+    { l }
+    { drop (- n 1) (tail l) }
+})
+
+(fun {split n l} {
+  list (take n l) (drop n l)
+})
+
+(fun {last l} {
+  nth (- (len l) 1) l
+})
+
+;
 ; Control flow
 ;
 
-(fun {do & l}
-  nil
-)
+; Try to replace with Haskell style do notation
+(fun {do & l} {
+  if (== l nil)
+    { nil }
+    { last l }
+})
 
 (fun {for ind min max body} {
   do (fun {_for i} {
@@ -36,14 +92,39 @@
 ; Math
 ;
 
+(fun {sqr x} {
+  (* x x)
+})
+
 (fun {fib n} {
   if (< n 2)
     {1}
     {+ (fib (- n 1)) (fib (- n 2))}
 })
 
+
+
+; This function polute global namespace
+; beacause no way to access to local variable from nested functions
 (fun {is_prime x} {
-  do
-    (= {d} 3)
-    (while {})
+  (do
+    (def {d} 2)
+    (def {r} true)
+    (while {and (>= x (sqr d)) r} {
+      (do
+        (if (% x d) {} { (def {r} false) } )
+        (def {d} (+ d 1))
+        )
+    })
+    r)
 })
+
+(fun {print_primes max} {
+  (for {i} 2 max {
+    if (is_prime i) {print i} {}
+  })
+})
+
+; 5.43 seconds
+; python 0.02 seconds. 280x faster
+(print_primes 1000)
