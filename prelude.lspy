@@ -1,0 +1,49 @@
+;
+; Define atoms
+;
+
+(def {nil} {})
+(def {true} 1)
+(def {false} 0)
+
+(def {fun} (\{args body} {
+  def (head args) (\(tail args) body)
+}))
+
+;
+; Control flow
+;
+
+(fun {do & l}
+  nil
+)
+
+(fun {for ind min max body} {
+  do (fun {_for i} {
+    if (< i max)
+      { do (= ind i) (eval body) (_for (+ i 1)) }
+      nil
+  }) (_for min)
+})
+
+(fun {while cond body} {
+  if (eval cond)
+    { do (eval body) (while cond body) }
+    nil
+})
+
+;
+; Math
+;
+
+(fun {fib n} {
+  if (< n 2)
+    {1}
+    {+ (fib (- n 1)) (fib (- n 2))}
+})
+
+(fun {is_prime x} {
+  do
+    (= {d} 3)
+    (while {})
+})
