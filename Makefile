@@ -6,9 +6,15 @@ debug:
 
 release:
 	cc -std=c99 -Wall -ledit -O2 -lm prompt.c mpc.c -o prompt
+
+highlighting:
+	cp lispy.vim ~/.vim/syntax/lispy.vim
+
 clean:
 	rm prompt
 
 .PHONY:
 	clean
 	all
+	debug
+	highlighting
