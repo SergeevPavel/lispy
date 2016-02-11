@@ -399,15 +399,20 @@ lenv* lenv_copy(lenv* v) {
 	return n;
 }
 
-lval* lenv_get(lenv* e, lval* k) {
+int max_depth = 0; // XXX this was added for debuging purpose
+
+lval* lenv_get(lenv* e, lval* k, int depth) {
 	for (int i = 0; i < e->count; i++) {
 		if (strcmp(e->syms[i], k->sym) == 0) {
+			if (depth >= max_depth) {    //
+				max_depth = depth;   //  XXX
+			}                            // 
 			return lval_copy(e->vals[i]);
 		}
 	}
 
 	if (e->par) {
-		return lenv_get(e->par, k);
+		return lenv_get(e->par, k, depth + 1);
 	} else {
 		return lval_err("Unbound Symbol '%s'", k->sym);
 	}
@@ -829,7 +834,7 @@ lval* lval_eval_sexpr(lenv* e, lval* v) {
 
 lval* lval_eval(lenv* e, lval* v) {
 	if(v->type == LVAL_SYM) {
-		lval* x = lenv_get(e, v);
+		lval* x = lenv_get(e, v, 0);
 		lval_del(v);
 		return x;
 	}
@@ -892,8 +897,6 @@ int main(int argc, char** argv) {
 	lval* r = load(e, "prelude.lspy");
 	lval_println(r);
 	lval_del(r);
-        goto exit;
-
 
 	while (1) {
 		char* input = readline("lispy>");
@@ -916,6 +919,7 @@ int main(int argc, char** argv) {
 	}
 
 exit:
+	printf("MAX_DEPTH: %d\n", max_depth);
 	lenv_del(e);
 	mpc_cleanup(7, Number, Symbol, Sexpr, Qexpr, Expr, Comment, Lispy);
 	return 0;

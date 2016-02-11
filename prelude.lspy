@@ -2,6 +2,12 @@
 ; 1. No functions with zero arguments
 ; 2. Maybe it's good idea to rewrite if function to format if {cond} {then} {else}
 ; 3. What is correct way to break control flow?
+; 4. Implement correct closures
+; 5. Implementation ffi for calling C functions is very vaguely.
+;    But we can try implement interaction with forieng code in python-like style.
+;    Provide way to write external modules in C, that can use part of internals
+;    data types of interpretaror. And importing some additional C implemented functions.
+;    Modules may be implemented as *.so libraries, that loaded by interpreter in runtime.
 
 ;
 ; Define atoms
@@ -125,6 +131,17 @@
   })
 })
 
+; Closures working not properly
+; Evironment binds to function in calling moment it leads to following problems:
+; 1. We can't use closures
+; 2. When we use recursion for iteration serching symbol in global space is very time consuming
+(fun {make_adder n} {
+  \{y} {+ n y}
+})
+
+(def {inc} (make_adder 1))
+(int 42) ; Unbound Symbol 'n'
+
 ; 5.43 seconds
 ; python 0.02 seconds. 280x faster
-(print_primes 1000)
+;(print_primes 1000)
