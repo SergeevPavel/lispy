@@ -6,6 +6,8 @@
 
 #include "mpc.h"
 
+#define FILE_EXT "lspy"
+
 mpc_parser_t* Number;
 mpc_parser_t* Symbol;
 mpc_parser_t* Sexpr;
@@ -706,6 +708,47 @@ lval* builtin_print(lenv* e, lval* v) {
 	return lval_sexpr();
 }
 
+lval* load(lenv* e, char* modulename) {
+        char* filename = malloc(strlen(modulename) + strlen(FILE_EXT) + 2);
+        sprintf(filename, "%s.%s", modulename, FILE_EXT);
+
+	mpc_result_t r;
+	if (mpc_parse_contents(filename, Lispy, &r)) {
+		lval* expr = lval_read(r.output);
+		mpc_ast_delete(r.output);
+		while (expr->count) {
+			lval* x = lval_eval(e, lval_pop(expr, 0));
+			if (x->type == LVAL_ERR) {
+				lval_println(x);
+			}
+			lval_del(x);
+		}
+                lval_del(expr);
+                free(filename);
+		return lval_sym(modulename);
+	} else {
+		char* err_msg = mpc_err_string(r.error);
+		mpc_err_delete(r.error);
+		lval* err = lval_err("Could not load library %s", err_msg);
+		free(err_msg);
+                free(filename);
+		return err;
+	}
+}
+
+lval* builtin_load(lenv* e, lval* v) {
+        LASSERT_NUM("load", v, 1);
+        LASSERT_TYPE("load", v, 0, LVAL_QEXPR);
+
+        LASSERT(v, v->cell[0]->count == 1, "Function 'load' expect one modulename.");
+        LASSERT(v, v->cell[0]->cell[0]->type == LVAL_SYM,
+                        "Function 'load' expect Q-Expression with Symbol name");
+
+        lval* res = load(e, v->cell[0]->cell[0]->sym);
+        lval_del(v);
+        return res;
+}
+
 void lenv_add_builtins(lenv* e) {
 	lenv_add_builtin(e, "\\", builtin_lambda);
 
@@ -733,6 +776,7 @@ void lenv_add_builtins(lenv* e) {
 	lenv_add_builtin(e, "!=", builtin_ne);
 
 	lenv_add_builtin(e, "if", builtin_if);
+        lenv_add_builtin(e, "load", builtin_load);
 }
 
 lval* lval_call(lenv* e, lval* f, lval* a) {
@@ -844,29 +888,6 @@ lval* lval_eval(lenv* e, lval* v) {
 	return v;
 }
 
-lval* load(lenv* e, char* filename) {
-	mpc_result_t r;
-	if (mpc_parse_contents(filename, Lispy, &r)) {
-		lval* expr = lval_read(r.output);
-		mpc_ast_delete(r.output);
-		while (expr->count) {
-			lval* x = lval_eval(e, lval_pop(expr, 0));
-			if (x->type == LVAL_ERR) {
-				lval_println(x);
-			}
-			lval_del(x);
-		}
-                lval_del(expr);
-		return lval_sym(filename);
-	} else {
-		char* err_msg = mpc_err_string(r.error);
-		mpc_err_delete(r.error);
-		lval* err = lval_err("Could not load library %s", err_msg);
-		free(err_msg);
-		return err;
-	}
-}
-
 int main(int argc, char** argv) {
 	Number  = mpc_new("number");
 	Symbol  = mpc_new("symbol");
@@ -894,11 +915,8 @@ int main(int argc, char** argv) {
 
 	lenv* e = lenv_new();
 	lenv_add_builtins(e);
-	lval* r = load(e, "prelude.lspy");
-	lval_println(r);
-	lval_del(r);
 
-	while (1) {
+        while (1) {
 		char* input = readline("lispy>");
 
 		add_history(input);
@@ -918,7 +936,6 @@ int main(int argc, char** argv) {
 		free(input);
 	}
 
-exit:
 	printf("MAX_DEPTH: %d\n", max_depth);
 	lenv_del(e);
 	mpc_cleanup(7, Number, Symbol, Sexpr, Qexpr, Expr, Comment, Lispy);
