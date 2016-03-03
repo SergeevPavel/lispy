@@ -9,7 +9,7 @@ struct lenv;
 typedef struct lenv lenv;
 
 enum { LVAL_ERR, LVAL_NUM, LVAL_SYM,
-	LVAL_FUN, LVAL_SEXPR, LVAL_QEXPR};
+	LVAL_FUN, LVAL_MACRO, LVAL_SEXPR, LVAL_QEXPR};
 
 static inline char* ltype_name(int t) {
 	switch (t) {
@@ -17,6 +17,7 @@ static inline char* ltype_name(int t) {
 		case LVAL_NUM: return "Number";
 		case LVAL_SYM: return "Symbol";
 		case LVAL_FUN: return "Function";
+                case LVAL_MACRO: return "Macro";
 		case LVAL_SEXPR: return "S-Expression";
 		case LVAL_QEXPR: return "Q-Expression";
 		default:
@@ -50,6 +51,7 @@ lval* lval_sexpr(void);
 lval* lval_qexpr(void);
 lval* lval_fun(lbuiltin func);
 lval* lval_lambda(lval* formals, lval* body, lenv* env);
+lval* lval_macro(lval* formals, lval* body, lenv* env);
 
 // lval destructor
 void lval_del(lval* v);

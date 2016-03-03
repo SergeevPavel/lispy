@@ -67,6 +67,18 @@ lval* lval_lambda(lval* formals, lval* body, lenv* env) {
 	return v;
 }
 
+lval* lval_macro(lval* formals, lval* body, lenv* env) {
+	lval* v = malloc(sizeof(lval));
+	v->type = LVAL_MACRO;
+
+	v->builtin = NULL;
+	v->env = lenv_copy(env);
+	v->formals = formals;
+	v->body = body;
+
+	return v;
+}
+
 void lval_del(lval* v) {
 	switch (v->type) {
 		case LVAL_NUM: break;
@@ -75,6 +87,7 @@ void lval_del(lval* v) {
 
 		case LVAL_SYM: free(v->sym); break;
 
+		case LVAL_MACRO:
 		case LVAL_FUN:
 			       if (!v->builtin) {
 				       lenv_del(v->env);

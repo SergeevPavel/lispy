@@ -105,6 +105,24 @@ lval* builtin_lambda(lenv* e, lval* a) {
 	return lval_lambda(formals, body, e);
 }
 
+lval* builtin_macro(lenv* e, lval* a) {
+       	LASSERT_NUM("macro", a, 2);
+	LASSERT_TYPE("macro", a, 0, LVAL_QEXPR);
+	LASSERT_TYPE("macro", a, 1, LVAL_QEXPR);
+
+	for (int i = 0; i < a->cell[0]->count; i++) {
+		LASSERT(a, (a->cell[0]->cell[i]->type == LVAL_SYM),
+				"Cannot define non-symbol. Got %s, Expected %s.",
+				ltype_name(a->cell[0]->cell[i]->type), ltype_name(LVAL_SYM));
+	}
+
+	lval* formals = lval_pop(a, 0);
+	lval* body = lval_pop(a, 0);
+
+	lval_del(a);
+	return lval_macro(formals, body, e);
+}
+
 lval* builtin_function(lenv* e, lval* a) {
 	LASSERT_NUM("fun", a, 2);
 	LASSERT_TYPE("fun", a, 0, LVAL_QEXPR);
