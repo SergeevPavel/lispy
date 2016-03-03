@@ -55,12 +55,12 @@ lval* lval_fun(lbuiltin func) {
 	return v;
 }
 
-lval* lval_lambda(lval* formals, lval* body) {
+lval* lval_lambda(lval* formals, lval* body, lenv* env) {
 	lval* v = malloc(sizeof(lval));
 	v->type = LVAL_FUN;
 
 	v->builtin = NULL;
-	v->env = lenv_new();
+	v->env = lenv_copy(env);
 	v->formals = formals;
 	v->body = body;
 
@@ -281,6 +281,7 @@ lval* lval_call(lenv* e, lval* f, lval* a) {
 
 	int given = a->count;
 	int total = f->formals->count;
+        f->env = lenv_inher(f->env);
 
 	while (a->count) {
 		if (f->formals->count == 0) {
@@ -335,7 +336,6 @@ lval* lval_call(lenv* e, lval* f, lval* a) {
 	}
 
 	if (f->formals->count == 0) {
-		f->env->par = e;
 		lval* body = lval_copy(f->body);
 		body->type = LVAL_SEXPR;
 		return lval_eval(f->env, body);
@@ -392,34 +392,34 @@ lenv* lenv_new(void) {
 	e->count = 0;
 	e->syms = NULL;
 	e->vals = NULL;
+        e->ref_counter = 1;
 	return e;
 }
 
 void lenv_del(lenv* e) {
+        e->ref_counter--;
+        if (e->ref_counter)
+                return;
+
 	for (int i = 0; i < e->count; i++) {
 		free(e->syms[i]);
 		lval_del(e->vals[i]);
 	}
 	free(e->syms);
 	free(e->vals);
+        lenv_del(e->par);
 	free(e);
 }
 
 lenv* lenv_copy(lenv* v) {
-	lenv* n = malloc(sizeof(lenv));
-	n->par = v->par;
-	n->count = v->count;
+        v->ref_counter++;
+        return v;
+}
 
-	n->syms = malloc(sizeof(char*) * n->count);
-	n->vals = malloc(sizeof(lval*) * n->count);
-
-	for (int i = 0; i < v->count; i++) {
-		n->syms[i] = malloc(strlen(v->syms[i]) + 1);
-		strcpy(n->syms[i], v->syms[i]);
-		n->vals[i] = lval_copy(v->vals[i]);
-	}
-
-	return n;
+lenv* lenv_inher(lenv* parent) {
+        lenv* e = lenv_new();
+        e->par = lenv_copy(parent);
+        return e;
 }
 
 lval* lenv_get(lenv* e, lval* k) {

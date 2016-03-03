@@ -4,9 +4,9 @@
 
 (def {nil} {})
 
-(def {fun} (\{args body} {
-  def (head args) (\(tail args) body)
-}))
+;(def {fun} (\{args body} {
+;  def (head args) (\(tail args) body)
+;}))
 
 ;
 ; Logic

@@ -102,7 +102,34 @@ lval* builtin_lambda(lenv* e, lval* a) {
 	lval* body = lval_pop(a, 0);
 
 	lval_del(a);
-	return lval_lambda(formals, body);
+	return lval_lambda(formals, body, e);
+}
+
+lval* builtin_function(lenv* e, lval* a) {
+	LASSERT_NUM("fun", a, 2);
+	LASSERT_TYPE("fun", a, 0, LVAL_QEXPR);
+	LASSERT_TYPE("fun", a, 1, LVAL_QEXPR);
+
+	LASSERT(a, (a->cell[0]->count >= 1), "Function name needed.");
+
+	for (int i = 0; i < a->cell[0]->count; i++) {
+		LASSERT(a, (a->cell[0]->cell[i]->type == LVAL_SYM),
+				"Cannot define non-symbol. Got %s, Expected %s.",
+				ltype_name(a->cell[0]->cell[i]->type), ltype_name(LVAL_SYM));
+	}
+
+	lval* formals = lval_pop(a, 0);
+	lval* body = lval_pop(a, 0);
+	lval_del(a);
+
+	lval* fun_name = lval_pop(formals, 0);
+	
+	lval* lambda = lval_lambda(formals, body, e);
+	lenv_def(e, fun_name, lambda);
+	lval_del(fun_name);
+	lval_del(lambda);
+	return lval_sexpr();
+
 }
 
 static lval* builtin_op(lenv* e, lval* a, char* op) {

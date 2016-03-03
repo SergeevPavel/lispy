@@ -49,7 +49,7 @@ lval* lval_sym(char* s);
 lval* lval_sexpr(void);
 lval* lval_qexpr(void);
 lval* lval_fun(lbuiltin func);
-lval* lval_lambda(lval* formals, lval* body);
+lval* lval_lambda(lval* formals, lval* body, lenv* env);
 
 // lval destructor
 void lval_del(lval* v);
@@ -74,10 +74,13 @@ struct lenv {
 	int count;
 	char** syms;
 	lval** vals;
+
+	int ref_counter;
 };
 
 // lenv constructor
 lenv* lenv_new(void);
+lenv* lenv_inher(lenv* par);
 
 // lenv destructor
 void lenv_del(lenv* e);

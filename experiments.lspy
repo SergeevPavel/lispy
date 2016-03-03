@@ -3,6 +3,8 @@
 ; 2. Maybe it's good idea to rewrite if function to format if {cond} {then} {else}
 ; 3. What is correct way to break control flow?
 ; 4. Implement correct closures. Read SICP 3.2
+;    Static scopes not permit hacks with eval.
+;    When we pass code to another function it should be evaluated in different environment.
 ; 4.1 Implement mutation throw set!
 ; 5. Implementation ffi for calling C functions is very vaguely.
 ;    But we can try implement interaction with forieng code in python-like style.
@@ -10,6 +12,7 @@
 ;    data types of interpretaror. And importing some additional C implemented functions.
 ;    Modules may be implemented as *.so libraries, that loaded by interpreter in runtime.
 
+load {prelude}
 
 (fun {fib n} {
   if (< n 2)
@@ -52,4 +55,4 @@
 
 ; 5.43 seconds
 ; python 0.02 seconds. 280x faster
-;(print_primes 1000)
+(print_primes 10)
