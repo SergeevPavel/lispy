@@ -227,8 +227,9 @@ void lval_print(lval* v) {
 					 printf("(\\ "); lval_print(v->formals);
 					 putchar(' '); lval_print(v->body); putchar(')');
 				 }
+				 break;
 		case LVAL_MACRO:
-				 printf("macro "); lval_print(v->formals);
+				 printf("(macro "); lval_print(v->formals);
 				 putchar(' '); lval_print(v->body); putchar(')');
 
 	}
@@ -408,7 +409,6 @@ static lval* lval_macro_subst(lval* m, lval* v) {
 	if (m->formals->count != v->count) {
 		lval* err = lval_err("Expected %d args but %d given.",
 				m->formals->count, v->count);
-		lval_del(m);
 		lval_del(v);
 		return err;
 	}
@@ -434,8 +434,10 @@ lval* lval_eval_sexpr(lenv* e, lval* v) {
 	}
 
 	if (f->type != LVAL_FUN && f->type != LVAL_MACRO) {
+		if (v->count == 0) { return f; }
+
 		lval* err = lval_err("S-Expression starts with incorrect type. "
-				"Got %s, Expected %s or.", ltype_name(f->type),
+				"Got %s, Expected %s or %s.", ltype_name(f->type),
 				ltype_name(LVAL_FUN), ltype_name(LVAL_MACRO));
 		lval_del(f);
 		lval_del(v);
@@ -457,8 +459,10 @@ lval* lval_eval_sexpr(lenv* e, lval* v) {
 	}
 
 	if (f->type == LVAL_MACRO) {
+		if (v->count == 0) { return f; }
 		lval* result = lval_macro_subst(f, v);
 		lval_del(f);
+		result->type = LVAL_SEXPR;
 		return lval_eval(e, result);
 	}
 

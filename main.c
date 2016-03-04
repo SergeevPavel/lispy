@@ -63,7 +63,7 @@ lval* builtin_load(lenv* e, lval* v) {
 void add_builtins(lenv* e) {
 	lenv_add_builtin(e, "\\", builtin_lambda);
 	lenv_add_builtin(e, "macro", builtin_macro);
-	lenv_add_builtin(e, "fun", builtin_function);
+	//lenv_add_builtin(e, "fun", builtin_function);
 
 	lenv_add_builtin(e, "list", builtin_list);
 	lenv_add_builtin(e, "head", builtin_head);
