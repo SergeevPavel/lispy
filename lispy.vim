@@ -8,7 +8,7 @@ if exists("b:current_syntax")
 endif
 
 syn match lispyComment ";.*$"
-syn keyword lispyBuiltinFunctions list head tail join eval def print if
+syn keyword lispyBuiltinFunctions list head tail join eval def print if fun macro
 syn match lispyNumber '\d\+'
 syn match lispyNumber '[-+]\d\+'
 

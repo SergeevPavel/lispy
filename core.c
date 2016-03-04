@@ -142,6 +142,7 @@ lval* lval_copy(lval* v) {
 	x->type = v->type;
 
 	switch (v->type) {
+		case LVAL_MACRO:
 		case LVAL_FUN:
 			if (v->builtin) {
 				x->builtin = v->builtin;
@@ -200,6 +201,7 @@ int lval_eq(lval* x, lval* y) {
 				}
 			}
 			return 1;
+		case LVAL_MACRO:
 		case LVAL_FUN:
 			if (x->builtin || y->builtin) {
 				return x->builtin == y->builtin;
@@ -225,6 +227,10 @@ void lval_print(lval* v) {
 					 printf("(\\ "); lval_print(v->formals);
 					 putchar(' '); lval_print(v->body); putchar(')');
 				 }
+		case LVAL_MACRO:
+				 printf("macro "); lval_print(v->formals);
+				 putchar(' '); lval_print(v->body); putchar(')');
+
 	}
 }
 
@@ -357,34 +363,106 @@ lval* lval_call(lenv* e, lval* f, lval* a) {
 	}
 }
 
-lval* lval_eval_sexpr(lenv* e, lval* v) {
-	for (int i = 0; i < v->count; i++) {
-		v->cell[i] = lval_eval(e, v->cell[i]);
+//static lval* get_arg_by_name(char* name, lval* formals, lval* values) {
+//	for (int i = 0; i < formals->count; i++) {
+//		if (strcmp(formals->cell[i]->sym, name) == 0) {
+//			return values->cell[i];
+//		}
+//	}
+//
+//	return lval_err("Unbound symbol %s.", name);
+//}
+
+static lval* substitute_symobl(lval* v, lval* name, lval* value) {
+	switch (v->type) {
+		case LVAL_ERR:
+		case LVAL_NUM:
+			return v;
+		case LVAL_SYM:
+			if (lval_eq(name, v)) {
+				lval_del(v);
+				return lval_copy(value);
+			}
+			return v;
+		case LVAL_QEXPR:
+		case LVAL_SEXPR:
+			for (int i = 0; i < v->count; i++) {
+				v->cell[i] = substitute_symobl(v->cell[i], name, value);
+			}
+			return v;
+		case LVAL_FUN:
+		case LVAL_MACRO:
+			if (v->builtin) { return v; }
+			for (int i = 0; i < v->formals->count; i++) {
+				if (lval_eq(name, v->formals->cell[i])) {
+					return v;
+				}
+			}
+			v->body = substitute_symobl(v->body, name, value);
+			return v;
 	}
+	return v;
+}
 
-	for (int i = 0; i < v->count; i++) {
-		if (v->cell[i]->type == LVAL_ERR) {
-			return lval_take(v, i);
-		}
-	}
-
-	if (v->count == 0) { return v; }
-
-	if (v->count == 1) { return lval_take(v, 0); }
-
-	lval* f = lval_pop(v, 0);
-	if (f->type != LVAL_FUN) {
-		lval* err = lval_err("S-Expression starts with incorrect type. "
-				"Got %s, Expected %s.", ltype_name(f->type),
-				ltype_name(LVAL_FUN));
-		lval_del(f);
+static lval* lval_macro_subst(lval* m, lval* v) {
+	if (m->formals->count != v->count) {
+		lval* err = lval_err("Expected %d args but %d given.",
+				m->formals->count, v->count);
+		lval_del(m);
 		lval_del(v);
 		return err;
 	}
+	
+	lval* body = lval_copy(m->body);
+	for (int i = 0; i < m->formals->count; i++) {
+		body = substitute_symobl(body, m->formals->cell[i], v->cell[i]);
+	}
 
-	lval* result = lval_call(e, f, v);
-	lval_del(f);
-	return result;
+	lval_del(v);
+	return body;
+}
+
+lval* lval_eval_sexpr(lenv* e, lval* v) {
+	if (v->count == 0) { return v; }
+
+	lval* f = lval_pop(v, 0);
+	f = lval_eval(e, f);
+
+	if (f->type == LVAL_ERR) {
+		lval_del(v);
+		return f;
+	}
+
+	if (f->type != LVAL_FUN && f->type != LVAL_MACRO) {
+		lval* err = lval_err("S-Expression starts with incorrect type. "
+				"Got %s, Expected %s or.", ltype_name(f->type),
+				ltype_name(LVAL_FUN), ltype_name(LVAL_MACRO));
+		lval_del(f);
+		lval_del(v);
+		return err;
+
+	}
+
+	if (f->type == LVAL_FUN) {
+		for (int i = 0; i < v->count; i++) {
+			v->cell[i] = lval_eval(e, v->cell[i]);
+			if (v->cell[i]->type == LVAL_ERR) {
+				lval_del(f);
+				return lval_take(v, i);
+			}
+		}
+		lval* result = lval_call(e, f, v);
+		lval_del(f);
+		return result;
+	}
+
+	if (f->type == LVAL_MACRO) {
+		lval* result = lval_macro_subst(f, v);
+		lval_del(f);
+		return lval_eval(e, result);
+	}
+
+	return NULL; // should not be happen
 }
 
 lval* lval_eval(lenv* e, lval* v) {
