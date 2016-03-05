@@ -462,8 +462,11 @@ lval* lval_eval_sexpr(lenv* e, lval* v) {
 		if (v->count == 0) { return f; }
 		lval* result = lval_macro_subst(f, v);
 		lval_del(f);
-		result->type = LVAL_SEXPR;
-		return lval_eval(e, result);
+		if (result->type == LVAL_QEXPR) {
+			result->type = LVAL_SEXPR;
+			return lval_eval(e, result);
+		}
+		return result;
 	}
 
 	return NULL; // should not be happen
